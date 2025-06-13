@@ -49,6 +49,10 @@ Object3D olimpia_wall_left;
 Object3D olimpia_wall_back;
 Object3D ceramic_vase;
 //Object3D gold_vase;
+Object3D statue1;
+//Object3D statue2;
+//Object3D statue3;
+Object3D horse_head;
 
 
 
@@ -316,6 +320,38 @@ void initOpenGLProgram(GLFWwindow* window) {
 	//gold_vase.rotation = glm::vec3(0.0f, -90.0f, 0.0f);
 	//gold_vase.tex0 = readTexture("gold2.png");
 	//gold_vase.tex1 = readTexture("gold2_normal.png");
+
+
+	statue1.loadModel("statue1.obj");
+	statue1.position = glm::vec3(-0.4f, 0.0f, 3.0f);
+	statue1.scale = glm::vec3(0.6f);
+	statue1.rotation = glm::vec3(0.0f, 0.0f, 0.0f);
+	statue1.tex0 = readTexture("marble_column.png");
+	statue1.tex1 = readTexture("marble_column_normal.png");
+
+	//statue2.loadModel("statue2.obj");
+	//statue2.position = glm::vec3(-0.2f, 0.0f, 3.0f);
+	//statue2.scale = glm::vec3(0.6f);
+	//statue2.rotation = glm::vec3(0.0f, -90.0f, 0.0f);
+	//statue2.tex0 = readTexture("marble_column.png");
+	//statue2.tex1 = readTexture("marble_column_normal.png");
+
+
+	//statue3.loadModel("statue3.obj");
+	//statue3.position = glm::vec3(0.0f, 0.0f, 3.0f);
+	//statue3.scale = glm::vec3(0.01f);
+	//statue3.rotation = glm::vec3(90.0f, 90.0f, 180.0f);
+	//statue3.tex0 = readTexture("marble_column.png");
+	//statue3.tex1 = readTexture("marble_column_normal.png");
+
+
+	horse_head.loadModel("horse_head.obj");
+	horse_head.position = glm::vec3(-0.8f, 0.0f, 3.0f);
+	horse_head.scale = glm::vec3(0.6f);
+	horse_head.rotation = glm::vec3(0.0f, 0.0f, 0.0f);
+	horse_head.tex0 = readTexture("marble_column.png");
+	horse_head.tex1 = readTexture("marble_column_normal.png");
+
 
 	//front kolumny
 
@@ -587,6 +623,11 @@ void drawObjects(ShaderProgram* current_sp, const glm::mat4& P, const glm::mat4&
 	olimpia_wall_back.draw(current_sp, P, V);
 	ceramic_vase.draw(current_sp, P, V);
 	//gold_vase.draw(current_sp, P, V);
+	statue1.draw(current_sp, P, V);
+	//statue2.draw(current_sp, P, V);
+	//statue3.draw(current_sp, P, V);
+	horse_head.draw(current_sp, P, V);
+
 	column1.draw(current_sp, P, V);
 	column2.draw(current_sp, P, V);
 	column3.draw(current_sp, P, V);
