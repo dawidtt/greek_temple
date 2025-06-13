@@ -43,6 +43,13 @@ Object3D olimpia_roof_base;
 Object3D olimpia_roof_decorations;
 Object3D olimpia_roof_roof;
 Object3D olimpia_roof_others;
+Object3D olimpia_wall_front;
+Object3D olimpia_wall_right;
+Object3D olimpia_wall_left;
+Object3D olimpia_wall_back;
+Object3D ceramic_vase;
+//Object3D gold_vase;
+
 
 
 Object3D column1;
@@ -95,7 +102,7 @@ float speed_y=0;
 float aspectRatio=1;
 
 ShaderProgram *sp;
-
+ShaderProgram* sp_shadow; // Shader do mapy cieni
 
 //Odkomentuj, żeby rysować kostkę
 //float* vertices = myCubeVertices;
@@ -122,7 +129,7 @@ bool rotateRight = false;
 float moveSpeed = 2.8f;
 float turnSpeed = 2.0f; // stopnie
 
-glm::vec3 cameraPos = glm::vec3(-0.5f, 0.18f, 2.8f);
+glm::vec3 cameraPos = glm::vec3(-0.5f, 0.2f, 2.8f);
 glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
 glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 
@@ -131,7 +138,9 @@ float yaw = -90.0f; // 0° to w kierunku x, -90° to w kierunku z (do przodu)
 GLuint tex0;
 GLuint tex1;
 
-
+GLuint depthMapFBO;
+GLuint depthMap;
+const unsigned int SHADOW_WIDTH = 4096, SHADOW_HEIGHT = 4096;
 
 
 void updateCameraFront(float yaw) {
@@ -204,12 +213,38 @@ void initOpenGLProgram(GLFWwindow* window) {
 	glfwSetKeyCallback(window,keyCallback);
 
 	sp=new ShaderProgram("v_simplest.glsl",NULL,"f_simplest.glsl");
+	sp_shadow = new ShaderProgram("shadow_shader.vert", NULL, "shadow_shader.frag");
+
+	// --- Inicjalizacja Framebuffera dla mapy cieni ---
+	glGenFramebuffers(1, &depthMapFBO);
+
+	glGenTextures(1, &depthMap);
+	glBindTexture(GL_TEXTURE_2D, depthMap);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+	float borderColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+	glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMap, 0);
+	glDrawBuffer(GL_NONE);
+	glReadBuffer(GL_NONE);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 	olimpia_floor.loadModel("olimpia_floor.obj");
-	olimpia_floor.position = glm::vec3(0.0f, -0.05f, 0.0f);
+	olimpia_floor.position = glm::vec3(0.0f, -0.1f, 1.0f);
 	olimpia_floor.scale = glm::vec3(0.125f);
 	olimpia_floor.rotation = glm::vec3(0.0f, -90.0f, 0.0f);
 	olimpia_floor.tex0 = readTexture("marble_column.png");
+	olimpia_floor.tex1 = readTexture("marble_column_normal.png");
+
 
 	olimpia_roof_base.loadModel("olimpia_roof_base.obj");
 	olimpia_roof_base.position = glm::vec3(0.04f, -0.65f, -1.2f);
@@ -240,8 +275,47 @@ void initOpenGLProgram(GLFWwindow* window) {
 	olimpia_roof_others.tex0 = readTexture("roof_decorations.png");
 	olimpia_roof_others.tex1 = readTexture("roof_decorations_normal.png");
 
+	olimpia_wall_front.loadModel("olimpia_wall_front.obj");
+	olimpia_wall_front.position = glm::vec3(0.04f, -0.18f, -1.0f);
+	olimpia_wall_front.scale = glm::vec3(0.132f);
+	olimpia_wall_front.rotation = glm::vec3(0.0f, -90.0f, 0.0f);
+	olimpia_wall_front.tex0 = readTexture("marble_column.png");
+	olimpia_wall_front.tex1 = readTexture("marble_column_normal.png");
 
-	olimpia_floor.tex1 = readTexture("marble_column_normal.png");
+	olimpia_wall_right.loadModel("olimpia_wall_right.obj");
+	olimpia_wall_right.position = glm::vec3(0.05f, -0.8f, -1.4f);
+	olimpia_wall_right.scale = glm::vec3(0.132f);
+	olimpia_wall_right.rotation = glm::vec3(0.0f, -90.0f, 0.0f);
+	olimpia_wall_right.tex0 = readTexture("marble_column.png");
+	olimpia_wall_right.tex1 = readTexture("marble_column_normal.png");
+
+	olimpia_wall_left.loadModel("olimpia_wall_left.obj");
+	olimpia_wall_left.position = glm::vec3(0.05f, -0.8f, -1.4f);
+	olimpia_wall_left.scale = glm::vec3(0.132f);
+	olimpia_wall_left.rotation = glm::vec3(0.0f, -90.0f, 0.0f);
+	olimpia_wall_left.tex0 = readTexture("marble_column.png");
+	olimpia_wall_left.tex1 = readTexture("marble_column_normal.png");
+
+	olimpia_wall_back.loadModel("olimpia_wall_back.obj");
+	olimpia_wall_back.position = glm::vec3(0.04f, -0.18f, -1.4f);
+	olimpia_wall_back.scale = glm::vec3(0.132f);
+	olimpia_wall_back.rotation = glm::vec3(0.0f, -90.0f, 0.0f);
+	olimpia_wall_back.tex0 = readTexture("marble_column.png");
+	olimpia_wall_back.tex1 = readTexture("marble_column_normal.png");
+
+	ceramic_vase.loadModel("ceramic_vase.obj");
+	ceramic_vase.position = glm::vec3(-0.6f, 0.0f, 3.0f);
+	ceramic_vase.scale = glm::vec3(0.6f);
+	ceramic_vase.rotation = glm::vec3(0.0f, -90.0f, 0.0f);
+	ceramic_vase.tex0 = readTexture("gold.png");
+	ceramic_vase.tex1 = readTexture("gold_normal.png");
+
+	//gold_vase.loadModel("gold_vase.obj");
+	//gold_vase.position = glm::vec3(-0.2f, 0.0f, 3.0f);
+	//gold_vase.scale = glm::vec3(0.6f);
+	//gold_vase.rotation = glm::vec3(0.0f, -90.0f, 0.0f);
+	//gold_vase.tex0 = readTexture("gold2.png");
+	//gold_vase.tex1 = readTexture("gold2_normal.png");
 
 	//front kolumny
 
@@ -481,7 +555,7 @@ void initOpenGLProgram(GLFWwindow* window) {
 
 
 	grass.loadModel("grass.obj");
-	grass.position = glm::vec3(0.0f, 0.0f, 0.0f);
+	grass.position = glm::vec3(0.0f, -0.1f, 1.0f);
 	grass.scale = glm::vec3(0.035f);
 	grass.rotation = glm::vec3(90.0f, 0.0f, 0.0f);
 	grass.tex0 = readTexture("grass.png");
@@ -495,15 +569,103 @@ void freeOpenGLProgram(GLFWwindow* window) {
     //************Tutaj umieszczaj kod, który należy wykonać po zakończeniu pętli głównej************
 
     delete sp;
+	delete sp_shadow;
+	glDeleteFramebuffers(1, &depthMapFBO);
+	glDeleteTextures(1, &depthMap);
 }
 
-
+void drawObjects(ShaderProgram* current_sp, const glm::mat4& P, const glm::mat4& V) {
+	// Funkcja pomocnicza do rysowania wszystkich obiektów
+	olimpia_floor.draw(current_sp, P, V);
+	olimpia_roof_base.draw(current_sp, P, V);
+	olimpia_roof_decorations.draw(current_sp, P, V);
+	olimpia_roof_roof.draw(current_sp, P, V);
+	olimpia_roof_others.draw(current_sp, P, V);
+	olimpia_wall_front.draw(current_sp, P, V);
+	olimpia_wall_right.draw(current_sp, P, V);
+	olimpia_wall_left.draw(current_sp, P, V);
+	olimpia_wall_back.draw(current_sp, P, V);
+	ceramic_vase.draw(current_sp, P, V);
+	//gold_vase.draw(current_sp, P, V);
+	column1.draw(current_sp, P, V);
+	column2.draw(current_sp, P, V);
+	column3.draw(current_sp, P, V);
+	column4.draw(current_sp, P, V);
+	column5.draw(current_sp, P, V);
+	column6.draw(current_sp, P, V);
+	column7.draw(current_sp, P, V);
+	column8.draw(current_sp, P, V);
+	column9.draw(current_sp, P, V);
+	column10.draw(current_sp, P, V);
+	column11.draw(current_sp, P, V);
+	column12.draw(current_sp, P, V);
+	column13.draw(current_sp, P, V);
+	column14.draw(current_sp, P, V);
+	column15.draw(current_sp, P, V);
+	column16.draw(current_sp, P, V);
+	column17.draw(current_sp, P, V);
+	column18.draw(current_sp, P, V);
+	column19.draw(current_sp, P, V);
+	column20.draw(current_sp, P, V);
+	column21.draw(current_sp, P, V);
+	column22.draw(current_sp, P, V);
+	column23.draw(current_sp, P, V);
+	column24.draw(current_sp, P, V);
+	column25.draw(current_sp, P, V);
+	column26.draw(current_sp, P, V);
+	column27.draw(current_sp, P, V);
+	column28.draw(current_sp, P, V);
+	column29.draw(current_sp, P, V);
+	column30.draw(current_sp, P, V);
+	column31.draw(current_sp, P, V);
+	column32.draw(current_sp, P, V);
+	column33.draw(current_sp, P, V);
+	column34.draw(current_sp, P, V);
+	column35.draw(current_sp, P, V);
+	grass.draw(current_sp, P, V);
+}
 
 
 //Procedura rysująca zawartość sceny
 void drawScene(GLFWwindow* window,float angle_x,float angle_y) {
 	//************Tutaj umieszczaj kod rysujący obraz******************l
+	// --- KROK 1: Renderowanie mapy głębi (z perspektywy światła) ---
+	glm::mat4 lightProjection, lightView;
+	glm::mat4 lightSpaceMatrix;
+	glm::vec3 lightPos(8.0f, 5.0f, 10.0f);
+
+	float near_plane = 1.0f, far_plane = 20.5f;
+	lightProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
+	lightView = glm::lookAt(lightPos, glm::vec3(0.0f), glm::vec3(0.0, 1.0, 0.0));
+	lightSpaceMatrix = lightProjection * lightView;
+
+	sp_shadow->use();
+	glUniformMatrix4fv(sp_shadow->u("lightSpaceMatrix"), 1, GL_FALSE, glm::value_ptr(lightSpaceMatrix));
+
+	glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
+	glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
+	glClear(GL_DEPTH_BUFFER_BIT);
+
+	// Rysuj obiekty używając shadera cienia
+	drawObjects(sp_shadow, lightProjection, lightView);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	
+	// --- KROK 2: Normalne renderowanie sceny (z perspektywy kamery) ---
+	int width, height;
+	glfwGetFramebufferSize(window, &width, &height);
+	glViewport(0, 0, width, height);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	sp->use();
+
+	glUniformMatrix4fv(sp->u("lightSpaceMatrix"), 1, GL_FALSE, glm::value_ptr(lightSpaceMatrix));
+
+	glUniform1f(sp->u("shadowMapSize"), SHADOW_WIDTH);
+
+	glActiveTexture(GL_TEXTURE2);
+	glBindTexture(GL_TEXTURE_2D, depthMap);
+	glUniform1i(sp->u("shadowMap"), 2);
 
 	glm::mat4 V = glm::lookAt(
 		cameraPos,
@@ -512,53 +674,9 @@ void drawScene(GLFWwindow* window,float angle_x,float angle_y) {
 
     glm::mat4 P=glm::perspective(50.0f*PI/180.0f, aspectRatio, 0.01f, 50.0f); //Wylicz macierz rzutowania
 
-	olimpia_floor.draw(sp, P, V);
-	olimpia_roof_base.draw(sp, P, V);
-	olimpia_roof_decorations.draw(sp, P, V);
-	olimpia_roof_roof.draw(sp, P, V);
-	olimpia_roof_others.draw(sp, P, V);
+	
 
-
-	column1.draw(sp, P, V);
-	column2.draw(sp, P, V);
-	column3.draw(sp, P, V);
-	column4.draw(sp, P, V);
-	column5.draw(sp, P, V);
-	column6.draw(sp, P, V);
-	column7.draw(sp, P, V);
-	column8.draw(sp, P, V);
-	column9.draw(sp, P, V);
-	column10.draw(sp, P, V);
-	column11.draw(sp, P, V);
-	column12.draw(sp, P, V);
-	column13.draw(sp, P, V);
-	column14.draw(sp, P, V);
-	column15.draw(sp, P, V);
-	column16.draw(sp, P, V);
-	column17.draw(sp, P, V);
-	column18.draw(sp, P, V);
-	column19.draw(sp, P, V);
-	column20.draw(sp, P, V);
-	column21.draw(sp, P, V);
-	column22.draw(sp, P, V);
-	column23.draw(sp, P, V);
-	column24.draw(sp, P, V);
-	column25.draw(sp, P, V);
-	column26.draw(sp, P, V);
-	column27.draw(sp, P, V);
-	column28.draw(sp, P, V);
-	column29.draw(sp, P, V);
-	column30.draw(sp, P, V);
-	column31.draw(sp, P, V);
-	column32.draw(sp, P, V);
-	column33.draw(sp, P, V);
-	column34.draw(sp, P, V);
-	column35.draw(sp, P, V);
-
-
-
-
-	grass.draw(sp, P, V);
+	drawObjects(sp, P, V);
 
     glfwSwapBuffers(window); //Przerzuć tylny bufor na przedni
 }
