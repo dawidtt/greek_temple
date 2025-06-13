@@ -37,6 +37,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="f_simplest.glsl" />
+    <None Include="point_shadow.frag" />
+    <None Include="point_shadow.geom" />
+    <None Include="point_shadow.vert" />
     <None Include="v_simplest.glsl" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

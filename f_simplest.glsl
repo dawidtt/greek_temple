@@ -12,13 +12,19 @@ out vec4 finalColor;
 
 // Tekstury
 uniform sampler2D textureMap0;
-uniform sampler2D textureMap1;
 uniform sampler2DShadow shadowMap;
+uniform samplerCube shadowCubeMap;
 
-// NOWA ZMIENNA UNIFORM PRZEKAZANA Z C++
+// Uniformy
 uniform float shadowMapSize;
+uniform vec3 viewPos;
+uniform float far_plane_point;
+uniform vec3 directionalLightPos;
+uniform vec3 pointLightPos;
+uniform vec3 pointLightColor;
+uniform float linear;
+uniform float quadratic;
 
-// Wzór próbkowania Poisson Disk dla gładszych cieni
 vec2 poissonDisk[16] = vec2[](
    vec2( -0.94201624, -0.39906216 ), vec2( 0.94558609, -0.76890725 ),
    vec2( -0.094184101, -0.92938870 ), vec2( 0.34495938, 0.29387760 ),
@@ -30,51 +36,90 @@ vec2 poissonDisk[16] = vec2[](
    vec2( 0.19984126, 0.78641367 ), vec2( 0.14383161, -0.14100790 )
 );
 
-// Funkcja obliczająca współczynnik cienia
-float calculateShadow(vec4 fragPosLightSpace) {
+// Funkcje pomocnicze
+float calculateDirShadow(vec4);
+float calculatePointShadow(vec3);
+
+void main() {
+    // Wspólne zmienne
+    vec3 N = normalize(fragNormal.xyz);
+    vec3 viewDir = normalize(viewPos - fragVert.xyz);
+    vec4 texColor = texture(textureMap0, fragTexCoord);
+    float shininess = 32.0;
+
+    // słońce
+    vec3 directionalLightColor = vec3(1.0, 1.0, 0.95);
+    vec3 ambient = 0.3 * directionalLightColor;
+    vec3 lightDir = normalize(directionalLightPos - fragVert.xyz);
+    float diff = max(dot(N, lightDir), 0.0);
+    vec3 diffuse = diff * directionalLightColor;
+    vec3 halfwayDir = normalize(lightDir + viewDir);
+    float spec = pow(max(dot(N, halfwayDir), 0.0), shininess);
+    vec3 specular = spec * directionalLightColor;
+    float shadow = calculateDirShadow(fragPosLightSpace);
+    vec3 directionalResult = (diffuse + specular) * shadow;
+
+    // Światło punktowe
+    vec3 pointLightDir = normalize(pointLightPos - fragVert.xyz);
+    float pointDiff = max(dot(N, pointLightDir), 0.0);
+    vec3 pointDiffuse = pointDiff * pointLightColor;
+    vec3 pointHalfwayDir = normalize(pointLightDir + viewDir);
+    float pointSpec = pow(max(dot(N, pointHalfwayDir), 0.0), shininess);
+    vec3 pointSpecular = pointSpec * pointLightColor;
+    float distance = length(pointLightPos - fragVert.xyz);
+    float attenuation = 1.0 / (1.0 + linear * distance + quadratic * distance * distance);
+    float pointShadow = calculatePointShadow(fragVert.xyz);
+    vec3 pointResult = (pointDiffuse + pointSpecular) * attenuation * pointShadow;
+
+    // Końcowe połączenie
+    vec3 finalLight = ambient + directionalResult + pointResult;
+    vec3 result = finalLight * texColor.rgb;
+
+    finalColor = vec4(result, texColor.a);
+}
+
+// Funkcja dla cienia kierunkowego
+float calculateDirShadow(vec4 fragPosLightSpace) {
     vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
     projCoords = projCoords * 0.5 + 0.5;
-
     float currentDepth = projCoords.z;
-
     float shadow = 0.0;
     float bias = 0.005;
-    // ZMIANA: Używamy uniforma zamiast stałej
     float radius = 1.5 / shadowMapSize;
-
     for (int i = 0; i < 16; i++) {
         shadow += texture(shadowMap, vec3(projCoords.xy + poissonDisk[i] * radius, currentDepth - bias));
     }
     shadow /= 16.0;
-
-    if(projCoords.z > 1.0) {
-        shadow = 1.0;
-    }
-
+    if(projCoords.z > 1.0) shadow = 1.0;
     return shadow;
 }
 
-void main() {
-    // --- Oświetlenie ---
-    vec3 lightPos = vec3(8.0, 5.0, 10.0);
-    vec3 lightColor = vec3(1.0, 1.0, 0.95);
-    float ambientStrength = 0.3;
+// Funkcja dla cienia punktowego
+float calculatePointShadow(vec3 fragPos) {
+    vec3 fragToLight = fragPos - pointLightPos;
+    float currentDepth = length(fragToLight);
 
-    vec3 N = normalize(fragNormal.xyz);
-    vec3 lightDir = normalize(lightPos - fragVert.xyz);
+    float shadow = 0.0;
+    float bias = 0.15;
+    int samples = 4; // Ilość próbek w każdej z 3 osi
+    float radius = 0.05; // Promień próbkowania w przestrzeni świata
 
-    float diff = max(dot(N, lightDir), 0.0);
-    vec3 diffuse = diff * lightColor;
-    vec3 ambient = ambientStrength * lightColor;
+    for(int x = -samples; x <= samples; ++x) {
+        for(int y = -samples; y <= samples; ++y) {
+            for(int z = -samples; z <= samples; ++z) {
+                // Oblicz znormalizowaną głębokość z mapy (wartości od 0 do 1)
+                float closestDepth = texture(shadowCubeMap, fragToLight + vec3(x, y, z) * radius).r;
+                // Przeskaluj ją z powrotem do jednostek świata
+                closestDepth *= far_plane_point;
+                // Porównaj z aktualną głębokością
+                if(currentDepth - bias > closestDepth) {
+                    shadow += 1.0;
+                }
+            }
+        }
+    }
+    float totalSamples = pow(float(samples) * 2.0 + 1.0, 3.0);
+    shadow /= totalSamples;
 
-    // --- Cienie ---
-    float shadow = calculateShadow(fragPosLightSpace);
-
-    // --- Teksturowanie ---
-    vec4 texColor = texture(textureMap0, fragTexCoord);
-
-    // Połączenie oświetlenia, cienia i koloru tekstury
-    vec3 result = (ambient + shadow * diffuse) * texColor.rgb;
-
-    finalColor = vec4(result, texColor.a);
+    return 1.0 - shadow;
 }
