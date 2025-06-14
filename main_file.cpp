@@ -93,6 +93,9 @@ Object3D column33;
 Object3D column34;
 Object3D column35;
 
+Object3D testColumn;
+Object3D testColumn2;
+
 
 
 Object3D grass;
@@ -185,6 +188,28 @@ bool isInBorder(const glm::vec3& position) {
 }
 void addBorder(const glm::vec3& position, float radius) {
 	borders.push_back({ position, radius });
+}
+
+struct borderAABB {
+	glm::vec3 min; // Minimalne współrzędne (x, y, z)
+	glm::vec3 max; // Maksymalne współrzędne (x, y, z)
+};
+
+std::vector<borderAABB> bordersAABB;
+
+void addBorderAABB(const glm::vec3& minPoint, const glm::vec3& maxPoint) {
+	bordersAABB.push_back({ minPoint, maxPoint });
+}
+
+bool isInBorderAABB(const glm::vec3& position) {
+	for (const auto& area : bordersAABB) {
+		if (position.x >= area.min.x && position.x <= area.max.x &&
+			position.y >= area.min.y && position.y <= area.max.y &&
+			position.z >= area.min.z && position.z <= area.max.z) {
+			return true; 
+		}
+	}
+	return false; // Pozycja nie znajduje się w żadnym AABB
 }
 
 
@@ -349,18 +374,80 @@ void initOpenGLProgram(GLFWwindow* window) {
 	olimpia_wall_front.tex1 = readTexture("marble_column_normal.png");
 
 	olimpia_wall_right.loadModel("olimpia_wall_right.obj");
-	olimpia_wall_right.position = glm::vec3(0.05f, -0.8f, -1.4f);
+	olimpia_wall_right.position = glm::vec3(0.02f, -0.8f, -1.52f);
 	olimpia_wall_right.scale = glm::vec3(0.138f);
 	olimpia_wall_right.rotation = glm::vec3(0.0f, -90.0f, 0.0f);
 	olimpia_wall_right.tex0 = readTexture("marble_column.png");
 	olimpia_wall_right.tex1 = readTexture("marble_column_normal.png");
 
 	olimpia_wall_left.loadModel("olimpia_wall_left.obj");
-	olimpia_wall_left.position = glm::vec3(0.05f, -0.8f, -1.4f);
+	olimpia_wall_left.position = glm::vec3(0.09f, -0.8f, -1.575f);
 	olimpia_wall_left.scale = glm::vec3(0.138f);
 	olimpia_wall_left.rotation = glm::vec3(0.0f, -90.0f, 0.0f);
 	olimpia_wall_left.tex0 = readTexture("marble_column.png");
 	olimpia_wall_left.tex1 = readTexture("marble_column_normal.png");
+
+
+	testColumn.loadModel("doric_column.obj");
+	testColumn.position = glm::vec3(-2.17f, 0.0f, -3.4f);
+	testColumn.scale = glm::vec3(0.085f);
+	testColumn.tex0 = readTexture("marble_column.png");
+	testColumn.tex1 = readTexture("marble_column_normal.png");
+
+	testColumn2.loadModel("doric_column.obj");
+	testColumn2.position = glm::vec3(-2.17f, 0.0f, 4.32f);
+	testColumn2.scale = glm::vec3(0.085f);
+	testColumn2.tex0 = readTexture("marble_column.png");
+	testColumn2.tex1 = readTexture("marble_column_normal.png");
+
+	// floor border boki
+	addBorderAABB(glm::vec3(0.94f, 0.0f, -3.4f), glm::vec3(1.2f, 0.6f, 4.32f));
+	addBorderAABB(glm::vec3(-2.5f, 0.0f, -3.4f), glm::vec3(-2.17f, 0.6f, 4.32f));
+
+	// floor border boki
+	addBorderAABB(glm::vec3(-2.17f, 0.0f, -3.8f), glm::vec3(0.94f, 0.6f, -3.4f));
+	addBorderAABB(glm::vec3(-2.17f, 0.0f, 4.32f), glm::vec3(0.94f, 0.6f, 4.72f));
+
+
+
+	//front sciana lewo
+	addBorderAABB(glm::vec3(-1.15f, 0.0f, 1.38f), glm::vec3(-0.78f, 0.3f, 1.75f));
+
+
+	//front sciana prawo
+	addBorderAABB(glm::vec3(-0.36f, 0.0f, 1.42f), glm::vec3(0.05f, 0.3f, 1.75f));
+
+	//front kolumny 
+	addBorder(glm::vec3(-0.92f, 0.0f, 1.9f), 0.32f);
+	addBorder(glm::vec3(-0.22f, 0.0f, 1.9f), 0.32f);
+
+
+	//lewa sciana border
+	addBorderAABB(glm::vec3(-1.5f, 0.0f, -2.0f), glm::vec3(-1.15f, 0.3f, 1.75f));
+
+
+	//lewa sciana wnetrze border
+	addBorderAABB(glm::vec3(-1.15f, 0.0f, -2.0f), glm::vec3(-0.85f, 0.3f, 1.1f));
+
+
+
+	//prawa sciana border
+	addBorderAABB(glm::vec3(-0.05f, 0.0f, -2.0f), glm::vec3(0.3f, 0.3f, 1.75f));
+
+	//prawa sciana wnetrze border
+	addBorderAABB(glm::vec3(-0.35f, 0.0f, -2.0f), glm::vec3(0.05f, 0.3f, 1.1f));
+
+	//tylna sciana border
+	addBorderAABB(glm::vec3 (-1.5f, 0.0f, -1.9f), glm::vec3(0.3f, 0.3f, -1.45f));
+
+
+
+
+
+
+
+
+
 
 	olimpia_wall_back.loadModel("olimpia_wall_back.obj");
 	olimpia_wall_back.position = glm::vec3(0.04f, -0.24f, -1.4f);
@@ -814,6 +901,11 @@ void drawObjects(ShaderProgram* current_sp, const glm::mat4& P, const glm::mat4&
 	horse_head.draw(current_sp, P, V);
 	stand.draw(current_sp, P, V);
 
+
+	testColumn.draw(current_sp, P, V);
+	testColumn2.draw(current_sp, P, V);
+
+
 	column1.draw(current_sp, P, V);
 	column2.draw(current_sp, P, V);
 	column3.draw(current_sp, P, V);
@@ -975,14 +1067,14 @@ int main(void)
 			
 
 		if (moveForward)
-			if (isInBorder(cameraPos + moveSpeed * cameraFront * deltaTime)) {
+			if (isInBorder(cameraPos + moveSpeed * cameraFront * deltaTime) || isInBorderAABB(cameraPos + moveSpeed * cameraFront * deltaTime)) {
 				drawScene(window, angle_x, angle_y); //Wykonaj procedurę rysującą
 				glfwPollEvents();
 				continue;
 			}
 			else cameraPos += moveSpeed * cameraFront * deltaTime;
 		if (moveBackward)
-			if (isInBorder(cameraPos - moveSpeed * cameraFront * deltaTime)) {
+			if (isInBorder(cameraPos - moveSpeed * cameraFront * deltaTime) || isInBorderAABB(cameraPos - moveSpeed * cameraFront * deltaTime)) {
 				drawScene(window, angle_x, angle_y); //Wykonaj procedurę rysującą
 				glfwPollEvents();
 				continue;
