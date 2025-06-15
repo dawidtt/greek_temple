@@ -2,6 +2,5 @@
 
 void main()
 {
-    // Nie ma potrzeby zapisywaæ koloru, tylko g³êbokoœæ.
-    // OpenGL zapisze j¹ automatycznie do bufora g³êbokoœci.
+    // OpenGL zapisuje aolor automatycznie
 }

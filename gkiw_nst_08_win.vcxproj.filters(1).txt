@@ -64,5 +64,14 @@
     <None Include="v_simplest.glsl">
       <Filter>Pliki zasobów</Filter>
     </None>
+    <None Include="point_shadow.vert">
+      <Filter>Pliki zasobów</Filter>
+    </None>
+    <None Include="point_shadow.geom">
+      <Filter>Pliki zasobów</Filter>
+    </None>
+    <None Include="point_shadow.frag">
+      <Filter>Pliki zasobów</Filter>
+    </None>
   </ItemGroup>
 </Project>
