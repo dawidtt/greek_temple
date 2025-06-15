@@ -1,0 +1,14 @@
+# Blender 4.4.3 MTL File: 'round_wooden_table_02_2k.blend'
+# www.blender.org
+
+newmtl round_wooden_table_02
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd C:/Users/Administrator/AppData/Local/Temp/3927dfa0-fa27-4232-8d6a-770a57f7c5b4_round_wooden_table_02_2k.blend.zip.5b4/textures/round_wooden_table_02_diff_2k.jpg
+map_Ns C:/Users/Administrator/AppData/Local/Temp/3927dfa0-fa27-4232-8d6a-770a57f7c5b4_round_wooden_table_02_2k.blend.zip.5b4/textures/round_wooden_table_02_rough_2k.exr
+map_refl C:/Users/Administrator/AppData/Local/Temp/3927dfa0-fa27-4232-8d6a-770a57f7c5b4_round_wooden_table_02_2k.blend.zip.5b4/textures/round_wooden_table_02_metal_2k.exr
+map_Bump -bm 1.000000 C:/Users/Administrator/AppData/Local/Temp/3927dfa0-fa27-4232-8d6a-770a57f7c5b4_round_wooden_table_02_2k.blend.zip.5b4/textures/round_wooden_table_02_nor_gl_2k.exr
